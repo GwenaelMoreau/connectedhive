@@ -47,6 +47,7 @@
 #error "Please define a modem in the compiler options."
 #endif
 
+#define TX_TIMEOUT_VALUE                                3500000   // in us
 #define RX_TIMEOUT_VALUE                                3500000   // in us
 #define BUFFER_SIZE                                     32        // Define the payload size here
 
@@ -55,13 +56,13 @@ DigitalOut led(LED2);
 #else
 DigitalOut led(LED1);
 #endif
+DigitalIn bouton(USER_BUTTON);
 
 /*
  *  Global variables declarations
  */
 typedef enum {
-    LOWPOWER = 0,
-    IDLE,
+    IDLE = 0,
 
     RX,
     RX_TIMEOUT,
@@ -74,7 +75,7 @@ typedef enum {
     CAD_DONE
 } AppStates_t;
 
-volatile AppStates_t State = LOWPOWER;
+volatile AppStates_t State = IDLE;
 
 /*!
  * Radio events function pointer
@@ -86,8 +87,6 @@ static RadioEvents_t RadioEvents;
  */
 SX1272MB2xAS Radio( NULL );
 
-const uint8_t PingMsg[] = "Coucou";
-const uint8_t PongMsg[] = "PONG";
 
 uint16_t BufferSize = BUFFER_SIZE;
 uint8_t Buffer[BUFFER_SIZE];
@@ -95,11 +94,23 @@ uint8_t Buffer[BUFFER_SIZE];
 int16_t RssiValue = 0.0;
 int8_t SnrValue = 0.0;
 
+
 int main()
 {
-    uint8_t i;
-    bool isMaster = true;
-
+    //format : "TT.tWWW.wP.pp"
+    //T : temperature ; W : poids ; P : pression
+    const uint8_t  valeursMesure[]="30.5;420.0;3.05";
+    const uint8_t  errorMsg[]="Received a message containing an error.";
+    /*valeursMesure[0*tailleCol+0]="50.0";
+    valeursMesure[0*tailleCol+1]="34.0";
+    valeursMesure[0*tailleCol+2]="3.05";
+    valeursMesure[1*tailleCol+0]="46.0";
+    valeursMesure[1*tailleCol+1]="38.5";
+    valeursMesure[1*tailleCol+2]="3.25";
+    valeursMesure[2*tailleCol+0]="53.0";
+    valeursMesure[2*tailleCol+1]="35.6";
+    valeursMesure[2*tailleCol+2]="3.00";
+    */
     debug( "\n\n\r     SX1272 Ping Pong Demo Application \n\n\r" );
 
     // Initialize Radio driver
@@ -156,84 +167,56 @@ int main()
 
 #endif
 
-    debug_if( DEBUG_MESSAGE, "Starting Ping-Pong loop\r\n" );
+    debug_if( DEBUG_MESSAGE, "Debut du programme\r\n" );
 
     led = 0;
 
-    Radio.Rx( RX_TIMEOUT_VALUE );
+    State = IDLE;
 
     while( 1 ) {
         switch( State ) {
-            /*case RX:
-                if( isMaster == true ) {
-                   
-                        debug("Je vais attendre dans case RX\r\n");
-                        wait_ms( 3000 );
-                        debug("J'ai attendu dans case RX\r\n");
-                        led = !led;
-                        // Send the next PING frame
-                        strcpy( ( char* )Buffer, ( char* )PingMsg );
-                        // We fill the buffer with numbers for the payload
-                        for( i = 6; i < BufferSize; i++ ) {
-                            Buffer[i] = i - 6;
-                        }
-                        wait_ms( 10 );
-                        debug("sent %s\n",Buffer);
-                        Radio.Send( Buffer, BufferSize );
-
-                    
+            case IDLE:
+                if (bouton ==0){
+                    State = TX;
                 }
-
-                State = LOWPOWER;
+                
                 break;
-                */
+                
             case TX:
                 led = !led;
-                if( isMaster == true ) {
-                    debug( "Ping...\r\n" );
-                }
-                Radio.Rx( RX_TIMEOUT_VALUE );
-                State = LOWPOWER;
+                debug( "Envoi donnees...\r\n" );
+                strcpy(( char* )Buffer, (char*)valeursMesure);
+                debug("...Envoye %s\r\n",Buffer);
+                Radio.Send( Buffer, BufferSize );
+                led = !led;
+                State = IDLE;
+                debug("Rechargement du bouton...\r\n");
+                wait_ms( 2000 );
+                debug("...Bouton operationnel.\r\n");
                 break;
-            case RX_TIMEOUT:
-                if( isMaster == true ) {
-                    // Send the next PING frame
-                    debug("Je suis dans case RX_timeout\r\n");
-                    
-                    strcpy( ( char* )Buffer, ( char* )PingMsg );
-                    for( i = 6; i < BufferSize; i++ ) {
-                        Buffer[i] = i - 6;
-                    }
-                    wait_ms( 10 );
-                    debug("sent %s\n",Buffer);
-                    Radio.Send( Buffer, BufferSize );
-                } else {
-                    Radio.Rx( RX_TIMEOUT_VALUE );
-                }
-                State = LOWPOWER;
-                break;
+                
+            case RX:
+                debug("On a recu un message externe\r\n"); 
+                wait_ms( 10 );
+                debug("Le message est %s\r\n",Buffer);                
+                State = IDLE;
+                
             case RX_ERROR:
-                // We have received a Packet with a CRC error, send reply as if packet was correct
-                if( isMaster == true ) {
-                    // Send the next PING frame
-                    strcpy( ( char* )Buffer, ( char* )PingMsg );
-                    for( i = 6; i < BufferSize; i++ ) {
-                        Buffer[i] = i - 6;
-                    }
-                    wait_ms( 10 );
-                    debug("sent %s\n",Buffer);
-                    Radio.Send( Buffer, BufferSize );
-                }
-                State = LOWPOWER;
+                debug("On a recu un message externe avec des erreurs\r\n");
+                strcpy( ( char* )Buffer, ( char* )errorMsg ); 
+                wait_ms( 10 );
+                Radio.Send( Buffer, BufferSize );
+                debug("On a notifie l'emetteur de l'erreur %s\r\n",Buffer);
+                State = IDLE;
                 break;
+                
             case TX_TIMEOUT:
                 Radio.Rx( RX_TIMEOUT_VALUE );
-                State = LOWPOWER;
+                State = IDLE;
                 break;
-            case LOWPOWER:
-                break;
+                
             default:
-                State = LOWPOWER;
+                State = IDLE;
                 break;
         }
     }
@@ -242,7 +225,7 @@ int main()
 void OnTxDone( void )
 {
     Radio.Sleep( );
-    State = TX;
+    State = IDLE;
     debug_if( DEBUG_MESSAGE, "> OnTxDone\n\r" );
 }
 

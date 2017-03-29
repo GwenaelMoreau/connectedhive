@@ -3,6 +3,9 @@
 #include "sx1276-hal.h"
 #include "debug.h"
 
+/* User defines */
+#define RCV_LENGTH  15
+
 /* Set this flag to '1' to display debug messages on the console */
 #define DEBUG_MESSAGE   0
 
@@ -85,8 +88,10 @@ static RadioEvents_t RadioEvents;
  */
 SX1276MB1xAS Radio( NULL );
 
+/*
 const uint8_t PingMsg[] = "Coucou";
 const uint8_t PongMsg[] = "PONG";
+*/
 
 uint16_t BufferSize = BUFFER_SIZE;
 uint8_t Buffer[BUFFER_SIZE];
@@ -96,7 +101,7 @@ int8_t SnrValue = 0.0;
 
 int main()
 {
-    uint8_t i;
+    //uint8_t i;
     //bool isMaster = false;
 
     debug( "\n\n\r     SX1276 Ping Pong Demo Application \n\n\r" );
@@ -167,11 +172,8 @@ int main()
             case RX:
                 if( BufferSize > 0 ) {
                     led = !led;
-                    debug( "...Coucou ? %s\r\n", Buffer );
-                    wait_ms( 10 );
+                    printf( "%s\n", Buffer );
                     Radio.Rx( RX_TIMEOUT_VALUE );
-                } else {
-                    debug( "Buffer vide //\n" );
                 }
                 State = LOWPOWER;
                 break;
