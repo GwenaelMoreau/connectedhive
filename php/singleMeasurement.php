@@ -10,7 +10,7 @@ and open the template in the editor.
         <title></title>
     </head>
     <body>
-        <h1>Affichage d'une journée de relevés des capteurs de la ruche</h1>
+        
         <?php
         $day = filter_input(INPUT_POST, 'chosenDay', FILTER_SANITIZE_SPECIAL_CHARS);
         $month = filter_input(INPUT_POST, 'chosenMonth', FILTER_SANITIZE_SPECIAL_CHARS);
@@ -45,7 +45,10 @@ and open the template in the editor.
 
             $submitInformation->execute();
             $data = $submitInformation->fetch();
-
+			
+			?>
+			<h1>Hive's sensors's measurement for the <?php echo $date ?></h1>
+			<?php
 
             if (empty($data)) {
                 echo "No measurements on this day, or the date is incorrect.";
@@ -53,7 +56,7 @@ and open the template in the editor.
             } else {
                 $i = 0;
                 while (!empty($data)) {
-                    echo "<h3>There is a measurement on " . $data['Date'] . " at " . $data['Heure'] . "<br></br></h3><ul>";
+                    echo "<h3>There is a measurement on " . $data['Date'] . " at " . $data['Heure'] . "<br></br></h3>";
                     echo "Temperature was at " . $data['Temperature'] . " degrees.<br></br>";
                     echo "Weight was at " . $data['Poids'] . " kg.<br></br>";
                     echo "Pressure was at " . $data['Pression'] ." *10^5 Pascals.<br></br>";
