@@ -1,4 +1,0 @@
-[ui]
-ignore.local = .hg/hgignore
-[paths]
-default = http://mbed.org/teams/Semtech/code/SX1272Lib/
