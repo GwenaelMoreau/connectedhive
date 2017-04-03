@@ -1,3 +1,5 @@
+Collaborators : MOREAU Gwenaël & LESAGE Lucas
+
 To use this project, you have to :
 
 -> Drop the programs in the card's flash memory (.bin files)
